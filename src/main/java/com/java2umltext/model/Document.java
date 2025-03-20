@@ -24,17 +24,17 @@ public abstract class Document implements UML {
     /**
      * Remove relationships involving classes that are not declared in the Document.
      */
-    public void removeForeignRelations(){
-        relationshipList.removeIf(r-> 
+    public void removeForeignRelations() {
+        relationshipList.removeIf(r -> 
             classList.stream()
-                .noneMatch(c -> r.source().equals(c.name())) ||
+            .noneMatch(c -> r.source().replaceAll("<.*?>", "<>").equals(c.name().replaceAll("<.*?>", "<>"))) ||
             classList.stream()
-                .noneMatch(c -> r.target().equals(c.name()))
+            .noneMatch(c -> r.target().replaceAll("<.*?>", "<>").equals(c.name().replaceAll("<.*?>", "<>")))
         );
     }
     
     public String export() {
-        return getHeader() 
+        String export = getHeader() 
         + classList.stream()
             .map(c -> exportClass(c))
             .collect(Collectors.joining("\n"))
@@ -44,6 +44,7 @@ public abstract class Document implements UML {
             .collect(Collectors.joining("\n"))
         + "\n"
         + getFooter();
+        return export;
     }
 
     protected abstract String getHeader();

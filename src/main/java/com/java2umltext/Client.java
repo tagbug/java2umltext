@@ -53,10 +53,10 @@ public class Client {
         @Option(names = { "-l", "--language-level" }, defaultValue = "JAVA_8", description = "Source code language level. One of ${COMPLETION-CANDIDATES}. Default: ${DEFAULT-VALUE}", descriptionKey = "languageLevel")
         ParserConfiguration.LanguageLevel languageLevel;
         
-        @Option(names = { "-f", "--field-modifiers" }, defaultValue = "public", description = "Field modifiers. One or more of ${COMPLETION-CANDIDATES}. Default: ${DEFAULT-VALUE}", descriptionKey = "fieldModifiers")
+        @Option(names = { "-f", "--field-modifiers" }, split = ",", defaultValue = "public,private,protected,default", description = "Field modifiers. One or more of ${COMPLETION-CANDIDATES} (comma-separated). Default: ${DEFAULT-VALUE}", descriptionKey = "fieldModifiers")
         List<Visibility> fieldModifiers;
         
-        @Option(names = { "-m", "--method-modifiers" }, defaultValue = "public", description = "Method modifiers. One or more of ${COMPLETION-CANDIDATES}. Default: ${DEFAULT-VALUE}", descriptionKey = "methodModifiers")
+        @Option(names = { "-m", "--method-modifiers" }, split = ",", defaultValue = "public,private,protected,default", description = "Method modifiers. One or more of ${COMPLETION-CANDIDATES} (comma-separated). Default: ${DEFAULT-VALUE}", descriptionKey = "methodModifiers")
         List<Visibility> methodModifiers;
         
         @Option(names = "--package", negatable = true, defaultValue = "false", description = "Show package name. Default: ${DEFAULT-VALUE}", descriptionKey = "package")

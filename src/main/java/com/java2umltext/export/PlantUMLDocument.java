@@ -20,7 +20,7 @@ public class PlantUMLDocument extends Document {
 
     @Override
     protected String exportClass(ClassWrapper cw) {
-        String fullname = ((cw.pkg() == null || cw.pkg().trim().equals("")) ? "" : (cw.pkg() + ".")) + cw.name();
+        String fullname = ((cw.pkg() == null || cw.pkg().trim().equals("")) ? "" : (cw.pkg() + ".")) + cw.name().replace(".", "_");
 
         String str = (cw.type() == "record" ? "class" : cw.type()) + " "
             + fullname 
@@ -30,21 +30,21 @@ public class PlantUMLDocument extends Document {
         str += cw.fields().isEmpty() ? "" : "\n" +
             cw.fields().stream()
             .map(f ->
-                f.visibility().symbol() + " " 
+                (f.visibility().symbol() + " " 
                 + (f.isStatic() ? "{static} " : "") 
                 + (f.type().isBlank() ? "" : f.type() + " ")
-                + f.name())
+                + f.name()).replace(".", "_"))
             .collect(Collectors.joining("\n"));
         
         str += cw.methods().isEmpty() ? "" : "\n" +
             cw.methods().stream()
             .map(m -> 
-                m.visibility().symbol() + " " 
+                (m.visibility().symbol() + " " 
                 + (m.isStatic() ? "{static} " : "") 
                 + (m.isAbstract() ? "{abstract} " : "")
                 + m.returnType() + " "
                 + m.name()
-                + "(" + m.parameters().stream().collect(Collectors.joining(",")) + ")")
+                + "(" + m.parameters().stream().collect(Collectors.joining(",")) + ")").replace(".", "_"))
             .collect(Collectors.joining("\n"));
 
         str += "\n}\n";
@@ -54,6 +54,8 @@ public class PlantUMLDocument extends Document {
 
     @Override
     protected String exportRelationship(Relationship r) {
-        return r.source() + " " + r.type() + " " + r.target();
+        return r.source().replace(".", "_").replaceAll("<.*?>", "")
+            + " " + r.type() + " " 
+            + r.target().replace(".", "_").replaceAll("<.*?>", "");
     }
 }

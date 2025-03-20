@@ -1,6 +1,7 @@
 package com.java2umltext;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
@@ -30,7 +31,6 @@ import com.java2umltext.model.MethodWrapper;
 import com.java2umltext.model.Relationship;
 import com.java2umltext.model.UML;
 import com.java2umltext.model.Visibility;
-
 
 public class ASTVisitor extends VoidVisitorAdapter<UML> {
 
@@ -89,7 +89,7 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
             return;
         }
         ClassWrapper cw = (ClassWrapper) el;
-        if (cw.type().equals("record")){
+        if (cw.type().equals("record")) {
             cw.fields().add(new FieldWrapper(Visibility.PUBLIC, false, p.getTypeAsString(), p.getNameAsString()));
         }
     }
@@ -123,15 +123,15 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
         if (!config.showConstructors) {
             return;
         }
-        
+
         ClassWrapper cw = (ClassWrapper) el;
         Visibility v = getVisibility(cd);
 
         if (config.methodModifiers.contains(v)) {
             MethodWrapper mw = new MethodWrapper(
-                v, cd.isStatic(), cd.isAbstract(), cw.name(), cd.getNameAsString());
+                    v, cd.isStatic(), cd.isAbstract(), cw.name(), cd.getNameAsString());
             cw.methods().add(mw);
-            
+
             for (Parameter parameter : cd.getParameters()) {
                 mw.parameters().add(parameter.getTypeAsString());
             }
@@ -150,13 +150,13 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
 
         if (config.methodModifiers.contains(v)) {
             MethodWrapper mw = new MethodWrapper(
-                v, md.isStatic(), md.isAbstract(), md.getTypeAsString(), md.getNameAsString());
+                    v, md.isStatic(), md.isAbstract(), md.getTypeAsString(), md.getNameAsString());
             cw.methods().add(mw);
-            
+
             for (Parameter parameter : md.getParameters()) {
                 mw.parameters().add(parameter.getTypeAsString());
             }
-            
+
             if (config.showMethodRelationships) {
                 addRelationship("..", md.getType(), cw);
                 for (Parameter parameter : md.getParameters()) {
@@ -169,18 +169,37 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
     private void parseClassLike(TypeDeclaration<?> td, Document doc) {
         String pkg = config.showPackage ? packageName : "";
         String name = td.getNameAsString();
-        
-        // find first parent CompilationUnit (if inner class)
+
+        // 如果是类或接口，添加泛型参数
+        if (td instanceof ClassOrInterfaceDeclaration) {
+            ClassOrInterfaceDeclaration cid = (ClassOrInterfaceDeclaration) td;
+            if (!cid.getTypeParameters().isEmpty()) {
+                name += cid.getTypeParameters().stream()
+                        .map(tp -> tp.getNameAsString())
+                        .collect(Collectors.joining(", ", "<", ">"));
+            }
+        }
+
+        // 处理内部类路径（保持原有逻辑，但需要调整名称拼接）
         Node node = td.getParentNode().get();
-        while(node instanceof ClassOrInterfaceDeclaration){
-            name = ((ClassOrInterfaceDeclaration) node).getNameAsString() + "." + name;
+        while (node instanceof ClassOrInterfaceDeclaration) {
+            ClassOrInterfaceDeclaration parentDecl = (ClassOrInterfaceDeclaration) node;
+            String parentName = parentDecl.getNameAsString();
+
+            // 处理父类的泛型参数
+            if (!parentDecl.getTypeParameters().isEmpty()) {
+                parentName += parentDecl.getTypeParameters().stream()
+                        .map(tp -> tp.getNameAsString())
+                        .collect(Collectors.joining(", ", "<", ">"));
+            }
+
+            name = parentName + "." + name;
             node = node.getParentNode().get();
             if (node instanceof CompilationUnit) {
                 doc.addRelationship(new Relationship(
-                    "+..", 
-                    ClassWrapper.pkgPrefix(pkg) + name, 
-                    ClassWrapper.pkgPrefix(pkg) + name.substring(0, name.lastIndexOf(".")))
-                );
+                        "+..",
+                        ClassWrapper.pkgPrefix(pkg) + name,
+                        ClassWrapper.pkgPrefix(pkg) + name.substring(0, name.lastIndexOf("."))));
             }
         }
 
@@ -189,18 +208,18 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
 
         // add imports
         if (node instanceof CompilationUnit) {
-            for(ImportDeclaration id : ((CompilationUnit) node).getImports()){
+            for (ImportDeclaration id : ((CompilationUnit) node).getImports()) {
                 cw.imports().put(id.getName().getIdentifier(), id.getName().toString());
             }
         }
 
         // add inheritance & interfaces
         for (ClassOrInterfaceType cit : ((NodeWithImplements<?>) td).getImplementedTypes()) {
-            addRelationship("<|..", cit.getElementType(), cw);
+            addRelationship("<|..", cit, cw);
         }
         if (td instanceof ClassOrInterfaceDeclaration) {
             for (ClassOrInterfaceType cit : ((ClassOrInterfaceDeclaration) td).getExtendedTypes()) {
-                addRelationship("<|--", cit.getElementType(), cw);
+                addRelationship("<|--", cit, cw);
             }
         }
 
@@ -216,22 +235,41 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
         }
     }
 
-    private void addRelationship(String relationship, Type type, ClassWrapper cw){
-        if(type instanceof ClassOrInterfaceType) {
-            ClassOrInterfaceType classOrInterfaceType = type.asClassOrInterfaceType();
-            Optional<NodeList<Type>> typeArguments = classOrInterfaceType.getTypeArguments();
-            if (typeArguments.isPresent()){
-                type = typeArguments.get().get(0);
+    private void addRelationship(String relationship, Type type, ClassWrapper cw) {
+        String typeString = type.toString(); // 直接使用原始类型字符串
+        String source = cw.pkgPrefix() + typeString;
+
+        // 处理泛型类型参数（如将java.util.List<T>转换为List<T>）
+        if (type instanceof ClassOrInterfaceType) {
+            ClassOrInterfaceType cit = (ClassOrInterfaceType) type;
+            typeString = cit.getNameAsString();
+
+            // 添加泛型参数
+            if (cit.getTypeArguments().isPresent()) {
+                typeString += cit.getTypeArguments().get().stream()
+                        .map(Type::toString)
+                        .collect(Collectors.joining(", ", "<", ">"));
+            }
+
+            // 处理导入映射
+            if (cw.imports().containsKey(cit.getNameAsString())) { // 注意这里使用原始名称匹配
+                String fullName = cw.imports().get(cit.getNameAsString());
+                source = config.showPackage ? fullName : cit.getNameAsString();
+
+                // 如果存在泛型参数则追加
+                if (cit.getTypeArguments().isPresent()) {
+                    source += cit.getTypeArguments().get().stream()
+                            .map(Type::toString)
+                            .collect(Collectors.joining(", ", "<", ">"));
+                }
             }
         }
 
-        String source = cw.pkgPrefix() + type.asString();
-        if (cw.imports().containsKey(type.asString())) {
-            source = config.showPackage ? cw.imports().get(type.asString()) : type.asString();
-        }
-        
-        String target = cw.pkgPrefix() + cw.name();
-        cw.document().addRelationship(new Relationship(relationship, source, target));
+        Relationship newRelationship = new Relationship(
+                relationship,
+                source,
+                cw.pkgPrefix() + cw.name());
+        cw.document().addRelationship(newRelationship);
     }
 
     private static String getDeclarationType(TypeDeclaration<?> td) {
@@ -241,9 +279,9 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
                 return "interface";
             } else {
                 return (cid.getModifiers().stream()
-                    .map(Modifier::toString)
-                    .filter(m -> m.contains("abstract"))
-                    .findAny().orElse("").trim() + " class").trim();
+                        .map(Modifier::toString)
+                        .filter(m -> m.contains("abstract"))
+                        .findAny().orElse("").trim() + " class").trim();
             }
         } else if (td instanceof EnumDeclaration) {
             return "enum";
@@ -255,8 +293,8 @@ public class ASTVisitor extends VoidVisitorAdapter<UML> {
 
     private static <T extends Node> Visibility getVisibility(NodeWithModifiers<T> node) {
         return node.getModifiers().stream()
-            .map(Modifier::toString)
-            .map(Visibility::fromString)
-            .findFirst().orElse(Visibility.DEFAULT);
+                .map(Modifier::toString)
+                .map(Visibility::fromString)
+                .findFirst().orElse(Visibility.DEFAULT);
     }
 }
