@@ -10,17 +10,17 @@ public class MermaidDocument extends Document {
 
     @Override
     protected String getHeader() {
-        return "classDiagram\n";
+        return "```mermaid\nclassDiagram\n";
     }
 
     @Override
     protected String getFooter() {
-        return "";
+        return "```";
     }
 
     @Override
     protected String exportClass(ClassWrapper cw) {
-        String fullname = ((cw.pkg() == null || cw.pkg().isBlank()) ? "" : (cw.pkg().replace(".", "_") + "_")) + cw.name().replace(".", "_");
+        String fullname = ((cw.pkg() == null || cw.pkg().isBlank()) ? "" : (cw.pkg().replace(".", "_") + "_")) + cw.name().replace(".", "_").replaceAll("[<>]", "~");
 
         String str = "class " + fullname + " { ";
         
@@ -40,20 +40,20 @@ public class MermaidDocument extends Document {
         
         str += cw.fields().isEmpty() ? "" : "\n" +
             cw.fields().stream()
-            .map(f -> f.visibility().symbol() + " " 
+            .map(f -> (f.visibility().symbol() + " " 
                 +(f.type().isBlank() ? "" : f.type().replaceAll("[<>]", "~") + " ")
                 + f.name()
-                + (f.isStatic() ? "$" : ""))
+                + (f.isStatic() ? "$" : "")).replace(".", "_"))
             .collect(Collectors.joining("\n"));
         
         str += cw.methods().isEmpty() ? "" : "\n" +
             cw.methods().stream()
-            .map(m -> m.visibility().symbol() + " " 
+            .map(m -> (m.visibility().symbol() + " " 
                 + m.returnType().replaceAll("[<>]", "~") + " "
                 + m.name()
                 + "(" + m.parameters().stream().map(p -> p.replaceAll("[<>]", "~")).collect(Collectors.joining(",")) + ")"
                 + (m.isAbstract() ? "*" : "")
-                + (m.isStatic() ? "$" : ""))
+                + (m.isStatic() ? "$" : "")).replace(".", "_"))
             .collect(Collectors.joining("\n"));
 
         str += "\n}\n";
@@ -63,11 +63,11 @@ public class MermaidDocument extends Document {
 
     @Override
     protected String exportRelationship(Relationship r) {
-        return r.source().replace(".", "_") 
+        return r.source().replace(".", "_").replaceAll("[<>]", "~") 
             + " " 
             + (r.type().equals("+..") ? "<.." : r.type())
             + " " 
-            + r.target().replace(".", "_")
+            + r.target().replace(".", "_").replaceAll("[<>]", "~")
             + (r.type().equals("+..") ? " : << contains >>" : "");
     }
 }
