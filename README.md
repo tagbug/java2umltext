@@ -1,5 +1,7 @@
 # java2umltext
 
+> Forked from feitosa-daniel/java2umltext, but with generic types support, and some small improvements.
+
 Create [PlantUML](https://plantuml.com/class-diagram) and [Mermaid](https://mermaid-js.github.io/mermaid/#/classDiagram) class diagrams from Java source code with ease.
 
 - `java2umltext` exports text files (not images).
@@ -34,8 +36,8 @@ SOURCES      Path to one or more Java files or directories
 |`--[no-]constructors`              | Show constructors. (**default: true**)|
 |`--[no-]field-relationships`       | Show relationships found based on field types. (**default: true**)|
 |`--[no-]method-relationships`      | Show relationships found based on method return and parameter types. (**default: true**)|
-|`-f, --field-modifiers=<modifier>` | Field modifiers. One or more of PUBLIC, PRIVATE, PROTECTED, DEFAULT. (**default: public**)|
-|`-m, --method-modifiers=<modifer>` | Method modifiers. One or more of PUBLIC, PRIVATE, PROTECTED, DEFAULT. (**default: public**)|
+|`-f, --field-modifiers=<modifier>` | Field modifiers. One or more of PUBLIC, PRIVATE, PROTECTED, DEFAULT. (**default: public,private,protected,default**)|
+|`-m, --method-modifiers=<modifer>` | Method modifiers. One or more of PUBLIC, PRIVATE, PROTECTED, DEFAULT. (**default: public,private,protected,default**)|
 |`-l, --language-level=<level>`     | Source code language level. One of JAVA_1_0, JAVA_1_1, JAVA_1_2, JAVA_1_3, JAVA_1_4, JAVA_5, JAVA_6, JAVA_7, JAVA_8, JAVA_9, JAVA_10, JAVA_10_PREVIEW, JAVA_11, JAVA_11_PREVIEW, JAVA_12, JAVA_12_PREVIEW, JAVA_13, JAVA_13_PREVIEW, JAVA_14, JAVA_14_PREVIEW, JAVA_15, JAVA_15_PREVIEW, JAVA_16, JAVA_16_PREVIEW, JAVA_17, JAVA_17_PREVIEW. (**default: JAVA_8**)
 |`-c, --config=<filepath>`          | Set options via a config file (format: Java property file).|
 
@@ -46,9 +48,9 @@ SOURCES      Path to one or more Java files or directories
   ```
   > java -jar java2umltext.jar --no-constructors PLANTUML ./src/main/java
   ```
-- Include private AND public methods (notice you must include multiple `-m`).
+- Include private AND public methods.
   ```
-  > java -jar java2umltext.jar -m=public -m=private  PLANTUML ./src/main/java
+  > java -jar java2umltext.jar -m=public,private  PLANTUML ./src/main/java
   ```
 - Show package name and include private fields only.
   ```
